@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "llm-client"
+version = "0.2.0"
+description = "Reusable OpenAI-compatible LLM client with sync/async APIs, retry/fallback, and concurrency helpers"
+requires-python = ">=3.10"
+dependencies = [
+    "openai>=1.0.0",
+    "python-dotenv",
+]
+
+[project.optional-dependencies]
+dev = ["pytest"]
+diagnostics = ["requests"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
