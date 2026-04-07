@@ -2,7 +2,7 @@
 Quick smoke test for LLMClient (provider-agnostic).
 
 Usage:
-    conda activate llm_test
+    Activate the project environment (`.venv` or `.conda/llm_test`)
     python scripts/smoke/client_smoke.py
 
 Optional env vars:
@@ -12,8 +12,10 @@ Optional env vars:
 """
 
 import os
+import sys
 
 from llm_client import LLMClient
+from llm_client.config import PLACEHOLDER_API_KEYS
 
 
 def main():
@@ -21,9 +23,11 @@ def main():
     base_url = os.getenv("LLM_BASE_URL")
     model_override = os.getenv("LLM_MODEL")
 
-    kwargs = {}
-    if api_key:
-        kwargs["api_key"] = api_key
+    if not api_key or api_key in PLACEHOLDER_API_KEYS:
+        print("Set LLM_API_KEY or OPENROUTER_API_KEY in .env before running this script.")
+        sys.exit(1)
+
+    kwargs = {"api_key": api_key}
     if base_url:
         kwargs["base_url"] = base_url
 

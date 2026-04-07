@@ -2,8 +2,8 @@
 Async usage examples for llm_client.
 
 Usage:
-    conda activate llm_test
-    pip install -e .
+    Activate the project environment (`.venv` or `.conda/llm_test`)
+    python -m pip install -e .
     python examples/async_usage.py
 """
 

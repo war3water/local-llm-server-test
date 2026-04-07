@@ -101,6 +101,57 @@ def test_default_request_kwargs_are_merged():
     assert captured["kwargs"]["temperature"] == 0.9
 
 
+def test_chat_messages_passes_message_list_unchanged():
+    # Given: A fully formed message list for the public chat_messages API
+    llm = LLMClient(api_key="test-key", verbose=False)
+    captured: dict = {}
+    messages = [
+        {"role": "system", "content": "Be concise."},
+        {"role": "user", "content": "Hello"},
+    ]
+
+    def create_fn(*, model, messages, **kwargs):
+        captured["model"] = model
+        captured["messages"] = messages
+        return _make_response("ok")
+
+    llm._client = _SyncClientStub(create_fn)
+
+    # When: chat_messages is called with an explicit model override
+    reply = llm.chat_messages(messages, model="custom-model")
+
+    # Then: The API call uses the provided model and original messages
+    assert reply == "ok"
+    assert captured["model"] == "custom-model"
+    assert captured["messages"] == messages
+
+
+def test_create_returns_raw_response_object():
+    # Given: A stubbed SDK response object
+    llm = LLMClient(api_key="test-key", verbose=False)
+    raw_response = _make_response("raw")
+
+    def create_fn(*, model, messages, **kwargs):
+        return raw_response
+
+    llm._client = _SyncClientStub(create_fn)
+
+    # When: create is used directly
+    result = llm.create([{"role": "user", "content": "Hello"}])
+
+    # Then: The original SDK-like object is returned unchanged
+    assert result is raw_response
+
+
+def test_chat_messages_rejects_empty_list():
+    # Given: An invalid empty message list
+    llm = LLMClient(api_key="test-key", verbose=False)
+
+    # When / Then: Validation rejects the request before any SDK call
+    with pytest.raises(ValueError, match="non-empty list"):
+        llm.chat_messages([])
+
+
 def test_stream_callback_collects_tokens():
     llm = LLMClient(api_key="test-key", verbose=False)
 
@@ -156,6 +207,25 @@ def test_abatch_chat_preserves_input_order(monkeypatch):
     assert replies == ["ba", "dc", "fe"]
 
 
+def test_abatch_chat_can_return_exceptions(monkeypatch):
+    # Given: An async chat function that fails for one prompt
+    llm = LLMClient(api_key="test-key", verbose=False)
+
+    async def fake_achat(prompt: str, **kwargs):
+        if prompt == "bad":
+            raise RuntimeError("boom")
+        return prompt[::-1]
+
+    monkeypatch.setattr(llm, "achat", fake_achat)
+
+    # When: return_exceptions is enabled
+    replies = asyncio.run(llm.abatch_chat(["ok", "bad"], return_exceptions=True))
+
+    # Then: The successful value and exception are both preserved in order
+    assert replies[0] == "ko"
+    assert isinstance(replies[1], RuntimeError)
+
+
 def test_achat_stream_callback_collects_tokens():
     llm = LLMClient(api_key="test-key", verbose=False)
 
@@ -177,6 +247,54 @@ def test_achat_stream_callback_collects_tokens():
     text = asyncio.run(_run())
     assert text == "abc"
     assert seen == ["a", "b", "c"]
+
+
+def test_achat_messages_passes_message_list_unchanged():
+    # Given: A fully formed message list for the public async API
+    llm = LLMClient(api_key="test-key", verbose=False)
+    captured: dict = {}
+    messages = [
+        {"role": "system", "content": "Be concise."},
+        {"role": "user", "content": "Hello"},
+    ]
+
+    async def create_fn(*, model, messages, **kwargs):
+        captured["model"] = model
+        captured["messages"] = messages
+        return _make_response("async ok")
+
+    llm._aclient = _AsyncClientStub(create_fn)
+
+    async def _run():
+        return await llm.achat_messages(messages, model="async-model")
+
+    # When: achat_messages is called with an explicit model override
+    reply = asyncio.run(_run())
+
+    # Then: The API call uses the provided model and original messages
+    assert reply == "async ok"
+    assert captured["model"] == "async-model"
+    assert captured["messages"] == messages
+
+
+def test_acreate_returns_raw_response_object():
+    # Given: A stubbed async SDK response object
+    llm = LLMClient(api_key="test-key", verbose=False)
+    raw_response = _make_response("raw async")
+
+    async def create_fn(*, model, messages, **kwargs):
+        return raw_response
+
+    llm._aclient = _AsyncClientStub(create_fn)
+
+    async def _run():
+        return await llm.acreate([{"role": "user", "content": "Hello"}])
+
+    # When: acreate is used directly
+    result = asyncio.run(_run())
+
+    # Then: The original SDK-like object is returned unchanged
+    assert result is raw_response
 
 
 def test_batch_chat_rejects_non_positive_concurrency():
@@ -201,6 +319,46 @@ def test_sdk_retries_disabled_to_avoid_nested_retry_loops():
     assert llm._aclient.max_retries == 0
     llm.close()
     asyncio.run(llm.aclose())
+
+
+def test_context_managers_close_underlying_clients():
+    # Given: Sync and async stubs that record close calls
+    sync_closed = {"value": False}
+    async_closed = {"value": False}
+
+    class _ClosableSyncClientStub(_SyncClientStub):
+        def close(self):
+            sync_closed["value"] = True
+            return None
+
+    class _ClosableAsyncClientStub(_AsyncClientStub):
+        async def close(self):
+            async_closed["value"] = True
+            return None
+
+    llm = LLMClient(api_key="test-key", verbose=False)
+    llm._client = _ClosableSyncClientStub(lambda **kwargs: _make_response("ok"))
+    llm._aclient = _ClosableAsyncClientStub(lambda **kwargs: _make_response("ok"))
+
+    # When: The context managers exit
+    with llm as sync_client:
+        assert sync_client is llm
+
+    async def _run():
+        async with llm as async_client:
+            assert async_client is llm
+
+    asyncio.run(_run())
+
+    # Then: Both underlying clients are closed
+    assert sync_closed["value"] is True
+    assert async_closed["value"] is True
+
+
+@pytest.mark.parametrize("placeholder", ["your_key_here", "your_openrouter_api_key_here"])
+def test_placeholder_api_keys_are_rejected(placeholder: str):
+    with pytest.raises(ValueError, match="No API key provided"):
+        LLMClient(api_key=placeholder, verbose=False)
 
 
 def test_fallback_models_are_deduplicated(monkeypatch):

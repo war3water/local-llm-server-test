@@ -8,6 +8,8 @@ import sys
 import time
 
 from dotenv import load_dotenv
+from llm_client.config import PLACEHOLDER_API_KEYS
+from llm_client import DEFAULT_FALLBACKS, DEFAULT_MODEL
 
 try:
     import requests
@@ -23,7 +25,7 @@ BASE_URL = "https://openrouter.ai/api/v1"
 
 
 def main() -> None:
-    if not API_KEY or API_KEY == "your_key_here":
+    if not API_KEY or API_KEY in PLACEHOLDER_API_KEYS:
         print("Set OPENROUTER_API_KEY in .env first.")
         sys.exit(1)
 
@@ -49,13 +51,7 @@ def main() -> None:
         sys.exit(1)
 
     # Step 2: Try chat completions with several free models
-    free_models = [
-        "qwen/qwen3-next-80b-a3b-instruct:free",
-        "deepseek/deepseek-r1-0528:free",
-        "google/gemma-3-1b-it:free",
-        "mistralai/mistral-small-3.1-24b-instruct:free",
-        "meta-llama/llama-4-scout:free",
-    ]
+    free_models = [DEFAULT_MODEL, *DEFAULT_FALLBACKS]
 
     headers = {
         "Authorization": f"Bearer {API_KEY}",

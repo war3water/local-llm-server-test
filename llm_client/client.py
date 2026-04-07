@@ -45,6 +45,7 @@ from .config import (
     DEFAULT_TIMEOUT,
     DEFAULT_VL_FALLBACKS,
     DEFAULT_VL_MODEL,
+    PLACEHOLDER_API_KEYS,
 )
 
 TokenCallback = Callable[[str], None]
@@ -97,7 +98,7 @@ class LLMClient:
             verbose: Print retry/fallback messages to stderr.
         """
         resolved_key = api_key or DEFAULT_API_KEY
-        if not resolved_key or resolved_key == "your_key_here":
+        if not resolved_key or resolved_key in PLACEHOLDER_API_KEYS:
             raise ValueError(
                 "No API key provided. Set LLM_API_KEY or OPENROUTER_API_KEY in .env "
                 "or pass api_key= to LLMClient()."

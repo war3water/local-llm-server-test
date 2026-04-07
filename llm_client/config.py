@@ -10,6 +10,11 @@ from dotenv import load_dotenv
 # Auto-load .env from cwd (or any parent) on import
 load_dotenv()
 
+PLACEHOLDER_API_KEYS = {
+    "your_key_here",
+    "your_openrouter_api_key_here",
+}
+
 
 def _parse_csv_env(key: str) -> list[str]:
     """Parse comma-separated env values and drop empty entries."""
@@ -28,10 +33,10 @@ DEFAULT_TIMEOUT = 60.0  # seconds
 DEFAULT_MODEL = os.getenv("LLM_MODEL", "stepfun/step-3.5-flash:free")
 
 _OPENROUTER_DEFAULT_FALLBACKS = [
-    "deepseek/deepseek-r1-0528:free",
-    "google/gemma-3-1b-it:free",
-    "mistralai/mistral-small-3.1-24b-instruct:free",
-    "meta-llama/llama-4-scout:free",
+    "nvidia/nemotron-3-super-120b-a12b:free",
+    "minimax/minimax-m2.5:free",
+    "arcee-ai/trinity-large-preview:free",
+    "openai/gpt-oss-20b:free",
 ]
 DEFAULT_FALLBACKS = _parse_csv_env("LLM_FALLBACK_MODELS") or list(_OPENROUTER_DEFAULT_FALLBACKS)
 

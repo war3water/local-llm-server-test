@@ -2,12 +2,13 @@
 Basic usage examples for llm_client.
 
 Usage:
-    conda activate llm_test
-    pip install -e .     # install the package (first time only)
+    Activate the project environment (`.venv` or `.conda/llm_test`)
+    python -m pip install -e .     # install the package (first time only)
     python examples/basic_usage.py
 """
 
 from llm_client import LLMClient
+from llm_client.config import DEFAULT_MODEL
 
 
 def main():
@@ -67,7 +68,7 @@ def main():
     ]
     replies = llm.batch_chat(
         prompts,
-        model="google/gemma-3-1b-it:free",
+        model=DEFAULT_MODEL,
         max_concurrency=3,
     )
     for idx, text in enumerate(replies, start=1):

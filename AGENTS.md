@@ -9,7 +9,7 @@ Maintainer context for AI coding agents working in this repository.
 ## Current Repository Shape
 
 ```text
-13_test_project_llm_chat/
+local-llm-server-test/
 ├── llm_client/
 │   ├── __init__.py
 │   ├── client.py
@@ -30,7 +30,8 @@ Maintainer context for AI coding agents working in this repository.
 ├── verification_tests/
 │   └── table-mixed.png
 ├── .vscode/
-│   └── launch.json
+│   ├── launch.json
+│   └── settings.json
 ├── AGENTS.md
 ├── CLAUDE.md
 ├── GEMINI.md
@@ -41,15 +42,34 @@ Maintainer context for AI coding agents working in this repository.
 
 ## Maintainer Workflow
 
-```bash
-conda env create -f environment.yaml
-conda activate llm_test
-pip install -e .
-pip install -e ".[dev,diagnostics]"
+Choose one isolated environment and keep every install, smoke run, and test run inside it.
 
+PowerShell with Conda:
+
+```powershell
+conda env create --prefix "$PWD/.conda/llm_test" -f environment.yaml
+conda activate "$PWD/.conda/llm_test"
+python -m pip install -e .
+python -m pip install -e ".[dev,diagnostics]"
+```
+
+PowerShell with `venv`:
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install -e .
+python -m pip install -e ".[dev,diagnostics]"
+```
+
+Verification commands:
+
+```powershell
+python -m pytest -q
 python scripts/smoke/client_smoke.py
 python scripts/smoke/vl_smoke.py
-python -m pytest -q
+python scripts/smoke/raw_sdk_smoke.py
+python scripts/diagnostics/openrouter_diagnostic.py
 ```
 
 Use `verification_tests/table-mixed.png` as the bundled fixture for the VL smoke flow.
@@ -64,15 +84,15 @@ Committed VS Code launch profiles live in `.vscode/launch.json`:
 - `Python: VL Smoke Test`
 - `Python: Pytest`
 
-They run in the integrated terminal, use `${workspaceFolder}` as `cwd`, and load `${workspaceFolder}/.env`.
+`.vscode/settings.json` points VS Code at `${workspaceFolder}\.venv\Scripts\python.exe`, enables pytest, and keeps terminal activation inside the project environment.
 
 ## Constraints
 
-1. Never run project commands in the base Conda environment.
+1. Never run project commands in the base environment.
 2. Never delete `CLAUDE.md` or `GEMINI.md`.
-3. Never commit `.env` or other local `.env.*` files. Commit `.env.example` as the template.
+3. Never commit `.env`, `.env.*`, or live API keys. Commit `.env.example` only as the safe template.
 4. Keep generated artifacts out of the repo state: `__pycache__/`, `.pytest_cache/`, `.lprof/`, `.agent/`, and `.claude/`.
-5. Keep `README.md` user-facing and quick-start oriented.
+5. Keep `README.md` focused on user-facing setup, verification, and debugging.
 6. Keep `AGENTS.md` focused on maintainer context, repo rules, and verification flow.
 7. Update both docs when package entry points, scripts, environment setup, or debug workflows change.
 

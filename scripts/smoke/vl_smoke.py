@@ -4,7 +4,7 @@ VL (Vision-Language) smoke test for LLMClient.
 Sends a test image to the default VL model and prints the response.
 
 Usage:
-    conda activate llm_test
+    Activate the project environment (`.venv` or `.conda/llm_test`)
     python scripts/smoke/vl_smoke.py
 
 Requires:
@@ -12,9 +12,12 @@ Requires:
     - verification_tests/table-mixed.png (included in repo)
 """
 
+import os
+import sys
 from pathlib import Path
 
 from llm_client import LLMClient, DEFAULT_VL_MODEL
+from llm_client.config import PLACEHOLDER_API_KEYS
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -27,8 +30,12 @@ def main():
             f"Test image not found: {TEST_IMAGE}\n"
             "Place a test image in verification_tests/ to run this smoke test."
         )
+    api_key = os.getenv("LLM_API_KEY") or os.getenv("OPENROUTER_API_KEY")
+    if not api_key or api_key in PLACEHOLDER_API_KEYS:
+        print("Set LLM_API_KEY or OPENROUTER_API_KEY in .env before running this script.")
+        sys.exit(1)
 
-    llm = LLMClient(verbose=True)
+    llm = LLMClient(api_key=api_key, verbose=True)
 
     # ── Non-streaming VL test ────────────────────────────────────────────
     print(f"\n{'=' * 60}")
